@@ -1,0 +1,519 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes" />
+  <title>Tunix · Image Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,450;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <style>
+    /* —— reset & base —— */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #f1f4f8;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 1.5rem;
+    }
+
+    /* —— main card —— */
+    .card {
+      max-width: 720px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 40px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.02);
+      padding: 2.2rem 2.2rem 2.4rem;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(0, 0, 0, 0.02);
+    }
+
+    @media (max-width: 520px) {
+      .card {
+        padding: 1.5rem 1.2rem 1.8rem;
+        border-radius: 28px;
+      }
+    }
+
+    /* —— header —— */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .header i {
+      font-size: 1.6rem;
+      color: #1a2c42;
+      opacity: 0.8;
+    }
+    .header h1 {
+      font-weight: 600;
+      font-size: 1.6rem;
+      letter-spacing: -0.02em;
+      color: #1a2c42;
+    }
+    .header span {
+      font-weight: 400;
+      color: #6f8aa8;
+      font-size: 0.9rem;
+      margin-left: 0.2rem;
+    }
+
+    /* —— prompt area —— */
+    .prompt-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      margin-bottom: 1.6rem;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      background: #f5f7fa;
+      border-radius: 60px;
+      padding: 0.1rem 0.1rem 0.1rem 1.4rem;
+      border: 1px solid #e8ecf2;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-group:focus-within {
+      border-color: #b0c4db;
+      box-shadow: 0 0 0 3px rgba(26, 44, 66, 0.04);
+    }
+    .input-group i {
+      color: #8aa1bc;
+      font-size: 0.95rem;
+      opacity: 0.6;
+      margin-right: 0.4rem;
+    }
+    .input-group .prompt {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 0.85rem 0.5rem 0.85rem 0;
+      font-size: 0.95rem;
+      font-family: 'Inter', sans-serif;
+      color: #1a2c42;
+      outline: none;
+      min-width: 0;
+      width: 100%;
+      font-weight: 450;
+    }
+    .input-group .prompt::placeholder {
+      color: #9bb0c9;
+      font-weight: 400;
+    }
+
+    .generate-btn {
+      background: #1a2c42;
+      border: none;
+      color: white;
+      font-weight: 500;
+      padding: 0.7rem 2rem;
+      border-radius: 60px;
+      font-size: 0.95rem;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(26, 44, 66, 0.06);
+    }
+    .generate-btn i {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+    .generate-btn:hover {
+      background: #0f1e30;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(26, 44, 66, 0.08);
+    }
+    .generate-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* —— image container —— */
+    .image-box {
+      background: #f5f7fa;
+      border-radius: 28px;
+      overflow: hidden;
+      margin: 1.2rem 0 1.2rem;
+      border: 1px solid #eef1f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .image-box img {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 500px;
+      object-fit: contain;
+      background: #ffffff;
+    }
+    .placeholder-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.6rem 1.5rem;
+      color: #9bb0c9;
+      width: 100%;
+    }
+    .placeholder-content i {
+      font-size: 2.6rem;
+      opacity: 0.3;
+      margin-bottom: 0.3rem;
+    }
+    .placeholder-content p {
+      font-size: 0.9rem;
+      font-weight: 450;
+      color: #b0c4db;
+      letter-spacing: -0.01em;
+    }
+    .placeholder-content .spinner {
+      color: #1a2c42;
+      opacity: 0.5;
+    }
+
+    /* —— action row —— */
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin-top: 0.2rem;
+    }
+
+    .download-btn {
+      background: #f5f7fa;
+      border: 1px solid #e8ecf2;
+      color: #1a2c42;
+      padding: 0.6rem 1.6rem;
+      border-radius: 60px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      font-family: 'Inter', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+    .download-btn i {
+      color: #4a6a8a;
+      font-size: 0.9rem;
+    }
+    .download-btn:hover:not(:disabled) {
+      background: #edf0f5;
+      border-color: #cdd7e4;
+      transform: translateY(-1px);
+    }
+    .download-btn:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+    .download-btn:disabled {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .status-pill {
+      font-size: 0.8rem;
+      color: #4a6a8a;
+      background: #f5f7fa;
+      padding: 0.3rem 1.2rem;
+      border-radius: 60px;
+      border: 1px solid #eef1f6;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+    .status-pill i {
+      font-size: 0.4rem;
+      color: #3f8a5e;
+    }
+    .status-pill .status-dot {
+      transition: color 0.2s;
+    }
+
+    .footer-note {
+      margin-top: 1rem;
+      text-align: right;
+      font-size: 0.7rem;
+      color: #b0c4db;
+      letter-spacing: 0.2px;
+    }
+
+    /* —— responsive —— */
+    @media (max-width: 600px) {
+      .input-group {
+        flex-wrap: wrap;
+        background: transparent;
+        border: none;
+        padding: 0;
+        gap: 0.7rem;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .input-group:focus-within {
+        box-shadow: none;
+        border-color: transparent;
+      }
+      .input-group i {
+        display: none;
+      }
+      .input-group .prompt {
+        background: #f5f7fa;
+        padding: 0.85rem 1.2rem;
+        border-radius: 60px;
+        border: 1px solid #e8ecf2;
+        width: 100%;
+        font-size: 0.95rem;
+      }
+      .input-group .prompt:focus {
+        border-color: #b0c4db;
+        box-shadow: 0 0 0 3px rgba(26, 44, 66, 0.03);
+      }
+      .generate-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.85rem;
+      }
+      .action-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .download-btn {
+        justify-content: center;
+        padding: 0.75rem;
+      }
+      .status-pill {
+        justify-content: center;
+        width: 100%;
+        padding: 0.4rem;
+      }
+      .card {
+        padding: 1.2rem 1rem 1.5rem;
+      }
+      .header h1 {
+        font-size: 1.4rem;
+      }
+    }
+    @media (max-width: 380px) {
+      .header h1 { font-size: 1.2rem; }
+      .generate-btn { font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <!-- header -->
+  <div class="header">
+    <i class="fas fa-image"></i>
+    <h1>Tunix <span>· image</span></h1>
+  </div>
+
+  <!-- prompt + generate -->
+  <div class="prompt-section">
+    <div class="input-group">
+      <i class="fas fa-pen-fancy"></i>
+      <input class="prompt" type="text" placeholder="Describe your vision …" value="a serene mountain lake at sunrise, misty" />
+    </div>
+    <button class="generate-btn" onclick="generateTunix()">
+      <i class="fas fa-arrow-right"></i> Generate
+    </button>
+  </div>
+
+  <!-- image display -->
+  <div class="image-box" id="imageBox">
+    <img id="resultImg" width="512" height="auto" alt="Tunix generated image" style="display: none;" />
+    <div class="placeholder-content" id="placeholderContent">
+      <i class="fas fa-image"></i>
+      <p>your image will appear here</p>
+    </div>
+  </div>
+
+  <!-- action row -->
+  <div class="action-row">
+    <button class="download-btn" id="downloadBtn" disabled>
+      <i class="fas fa-arrow-down"></i> Download
+    </button>
+    <span class="status-pill" id="statusPill">
+      <i class="fas fa-circle status-dot" style="color: #3f8a5e;"></i>
+      <span id="statusLabel">ready</span>
+    </span>
+  </div>
+  <div class="footer-note">
+    <span>tunix · instant</span>
+  </div>
+</div>
+
+<script>
+
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+
+document.onkeydown = function(e) {
+    if (e.keyCode == 123) return false; // F12
+    if (e.ctrlKey && e.shiftKey && e.keyCode == 73) return false; // Ctrl+Shift+I
+    if (e.ctrlKey && e.keyCode == 85) return false; // Ctrl+U 
+
+
+  (function() {
+    const resultImg = document.getElementById('resultImg');
+    const placeholder = document.getElementById('placeholderContent');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const statusLabel = document.getElementById('statusLabel');
+    const statusDot = document.querySelector('.status-dot');
+    const promptInput = document.querySelector('.prompt');
+
+    function setStatus(text, isBusy = false) {
+      statusLabel.textContent = text;
+      if (statusDot) {
+        statusDot.style.color = isBusy ? '#b08a3a' : '#3f8a5e';
+      }
+    }
+
+    function setDownloadEnabled(enabled) {
+      downloadBtn.disabled = !enabled;
+    }
+
+    function displayImage(b64Data) {
+      if (b64Data) {
+        resultImg.src = `data:image/png;base64,${b64Data}`;
+        resultImg.style.display = 'block';
+        placeholder.style.display = 'none';
+        setDownloadEnabled(true);
+        setStatus('ready', false);
+      } else {
+        resultImg.style.display = 'none';
+        placeholder.style.display = 'flex';
+        placeholder.innerHTML = `
+          <i class="fas fa-image"></i>
+          <p>your image will appear here</p>
+        `;
+        setDownloadEnabled(false);
+        setStatus('no image', false);
+      }
+    }
+
+    function showLoading() {
+      resultImg.style.display = 'none';
+      placeholder.style.display = 'flex';
+      placeholder.innerHTML = `
+        <i class="fas fa-spinner fa-pulse spinner" style="font-size: 2.2rem;"></i>
+        <p style="color: #4a6a8a;">generating …</p>
+      `;
+      setStatus('generating', true);
+      setDownloadEnabled(false);
+    }
+
+    function showError(msg = '') {
+      resultImg.style.display = 'none';
+      placeholder.style.display = 'flex';
+      placeholder.innerHTML = `
+        <i class="fas fa-exclamation-circle" style="font-size: 2rem; color: #b05a4a; opacity: 0.6;"></i>
+        <p style="color: #8a6a5a;">${msg || 'something went wrong'}</p>
+      `;
+      setStatus('error', false);
+      setDownloadEnabled(false);
+    }
+
+    // download
+    downloadBtn.addEventListener('click', function() {
+      const src = resultImg.src;
+      if (!src || src === '' || src === window.location.href) {
+        alert('No image to download.');
+        return;
+      }
+      const link = document.createElement('a');
+      link.download = `tunix-${Date.now()}.png`;
+      link.href = src;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // generate
+    window.generateTunix = async function generateTunix() {
+      const prompt = promptInput.value.trim();
+      if (!prompt) {
+        alert('Please enter a prompt.');
+        return;
+      }
+
+      showLoading();
+
+      try {
+        const response = await fetch(
+          'https://sahi-api.tunixcompanyyoung-f0f.workers.dev',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer xr9k-vq71 zt4m-n8px qw3l-kd92 hf7y-rt51 mn8c-zx24'
+            },
+            body: JSON.stringify({
+              prompt: prompt,
+              model: '@cf/black-forest-labs/flux-1-schnell'
+            })
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Server error (${response.status})`);
+        }
+
+        const data = await response.json();
+        console.log('Tunix response:', data);
+
+        if (data.data && data.data[0] && data.data[0].b64_json) {
+          displayImage(data.data[0].b64_json);
+        } else {
+          showError('no image generated');
+          alert('No image was generated. Try a different prompt.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showError('request failed');
+        alert('An error occurred. Check console.');
+      }
+    };
+
+    // initial state
+    resultImg.style.display = 'none';
+    placeholder.style.display = 'flex';
+    placeholder.innerHTML = `
+      <i class="fas fa-image"></i>
+      <p>your image will appear here</p>
+    `;
+    setDownloadEnabled(false);
+    setStatus('ready', false);
+  })();
+</script>
+</body>
+</html>
