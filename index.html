@@ -9,7 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,450;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <style>
-    /* —— reset & base —— */
     * {
       margin: 0;
       padding: 0;
@@ -24,9 +23,9 @@
       align-items: center;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       padding: 1.5rem;
+      margin: 0;
     }
 
-    /* —— main card —— */
     .card {
       max-width: 720px;
       width: 100%;
@@ -45,7 +44,6 @@
       }
     }
 
-    /* —— header —— */
     .header {
       display: flex;
       align-items: center;
@@ -70,7 +68,6 @@
       margin-left: 0.2rem;
     }
 
-    /* —— prompt area —— */
     .prompt-section {
       display: flex;
       flex-direction: column;
@@ -147,7 +144,6 @@
       transform: scale(0.97);
     }
 
-    /* —— image container —— */
     .image-box {
       background: #f5f7fa;
       border-radius: 28px;
@@ -194,7 +190,6 @@
       opacity: 0.5;
     }
 
-    /* —— action row —— */
     .action-row {
       display: flex;
       flex-wrap: wrap;
@@ -266,7 +261,66 @@
       letter-spacing: 0.2px;
     }
 
-    /* —— responsive —— */
+    /* offline overlay */
+    .offline-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      font-family: 'Inter', sans-serif;
+    }
+    .offline-overlay.active {
+      display: flex;
+    }
+    .offline-box {
+      background: white;
+      max-width: 340px;
+      width: 90%;
+      padding: 2rem 1.5rem;
+      border-radius: 48px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .offline-box i {
+      font-size: 2.8rem;
+      color: #b05a4a;
+      opacity: 0.6;
+      margin-bottom: 0.5rem;
+    }
+    .offline-box h3 {
+      font-weight: 600;
+      font-size: 1.4rem;
+      color: #1a2c42;
+      margin-bottom: 0.3rem;
+    }
+    .offline-box p {
+      color: #5a7a8a;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+    .offline-box .retry-btn {
+      background: #1a2c42;
+      border: none;
+      color: white;
+      padding: 0.7rem 2.2rem;
+      border-radius: 60px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .offline-box .retry-btn:hover {
+      background: #0f1e30;
+    }
+
     @media (max-width: 600px) {
       .input-group {
         flex-wrap: wrap;
@@ -329,14 +383,12 @@
 </head>
 <body>
 
-<div class="card">
-  <!-- header -->
+<div class="card" id="appCard">
   <div class="header">
     <i class="fas fa-image"></i>
     <h1>Tunix <span>· image</span></h1>
   </div>
 
-  <!-- prompt + generate -->
   <div class="prompt-section">
     <div class="input-group">
       <i class="fas fa-pen-fancy"></i>
@@ -347,7 +399,6 @@
     </button>
   </div>
 
-  <!-- image display -->
   <div class="image-box" id="imageBox">
     <img id="resultImg" width="512" height="auto" alt="Tunix generated image" style="display: none;" />
     <div class="placeholder-content" id="placeholderContent">
@@ -356,7 +407,6 @@
     </div>
   </div>
 
-  <!-- action row -->
   <div class="action-row">
     <button class="download-btn" id="downloadBtn" disabled>
       <i class="fas fa-arrow-down"></i> Download
@@ -371,6 +421,18 @@
   </div>
 </div>
 
+<!-- OFFLINE OVERLAY (appears when no internet) -->
+<div class="offline-overlay" id="offlineOverlay">
+  <div class="offline-box">
+    <i class="fas fa-wifi-slash"></i>
+    <h3>No Connection</h3>
+    <p>Please check your internet and try again.</p>
+    <button class="retry-btn" onclick="checkConnectionAndReload()">
+      <i class="fas fa-sync-alt" style="margin-right: 8px;"></i> Retry
+    </button>
+  </div>
+</div>
+
 <script>
   (function() {
     const resultImg = document.getElementById('resultImg');
@@ -379,7 +441,9 @@
     const statusLabel = document.getElementById('statusLabel');
     const statusDot = document.querySelector('.status-dot');
     const promptInput = document.querySelector('.prompt');
+    const offlineOverlay = document.getElementById('offlineOverlay');
 
+    // ---------- status helpers ----------
     function setStatus(text, isBusy = false) {
       statusLabel.textContent = text;
       if (statusDot) {
@@ -432,7 +496,7 @@
       setDownloadEnabled(false);
     }
 
-    // download
+    // ---------- download ----------
     downloadBtn.addEventListener('click', function() {
       const src = resultImg.src;
       if (!src || src === '' || src === window.location.href) {
@@ -447,8 +511,15 @@
       document.body.removeChild(link);
     });
 
-    // generate
+    // ---------- generate ----------
     window.generateTunix = async function generateTunix() {
+      // 1. quick online check before fetch
+      const online = await checkOnline();
+      if (!online) {
+        showOfflineOverlay();
+        return;
+      }
+
       const prompt = promptInput.value.trim();
       if (!prompt) {
         alert('Please enter a prompt.');
@@ -489,19 +560,108 @@
       } catch (error) {
         console.error('Error:', error);
         showError('request failed');
-        alert('An error occurred. Check console.');
+        // If network error, show offline overlay
+        if (!navigator.onLine) {
+          showOfflineOverlay();
+        } else {
+          alert('An error occurred. Check console.');
+        }
       }
     };
 
-    // initial state
-    resultImg.style.display = 'none';
-    placeholder.style.display = 'flex';
-    placeholder.innerHTML = `
-      <i class="fas fa-image"></i>
-      <p>your image will appear here</p>
-    `;
-    setDownloadEnabled(false);
-    setStatus('ready', false);
+    // ---------- offline / online detection ----------
+    function checkOnline() {
+      return new Promise((resolve) => {
+        if (!navigator.onLine) {
+          resolve(false);
+          return;
+        }
+        // ping a lightweight resource to be sure
+        fetch('https://fonts.googleapis.com/css2?family=Inter', { method: 'HEAD', mode: 'no-cors' })
+          .then(() => resolve(true))
+          .catch(() => resolve(false));
+      });
+    }
+
+    function showOfflineOverlay() {
+      offlineOverlay.classList.add('active');
+    }
+
+    function hideOfflineOverlay() {
+      offlineOverlay.classList.remove('active');
+    }
+
+    window.checkConnectionAndReload = async function() {
+      const online = await checkOnline();
+      if (online) {
+        hideOfflineOverlay();
+        // refresh status
+        setStatus('ready', false);
+        // optionally restore placeholder
+        if (resultImg.style.display === 'none' && placeholder.style.display === 'flex') {
+          // keep as is
+        } else {
+          // if image is shown, keep it
+        }
+        // re-run any pending? just hide overlay.
+      } else {
+        // still offline, keep overlay
+        // small feedback
+        const btn = document.querySelector('.offline-box .retry-btn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+        setTimeout(() => {
+          btn.innerHTML = orig;
+          // keep overlay visible
+        }, 800);
+      }
+    };
+
+    // listen to online/offline events
+    window.addEventListener('online', async function() {
+      const online = await checkOnline();
+      if (online) {
+        hideOfflineOverlay();
+        setStatus('ready', false);
+      }
+    });
+
+    window.addEventListener('offline', function() {
+      showOfflineOverlay();
+      setStatus('offline', false);
+    });
+
+    // ---------- initial check ----------
+    async function initialConnectionCheck() {
+      const online = await checkOnline();
+      if (!online) {
+        showOfflineOverlay();
+      } else {
+        hideOfflineOverlay();
+        // set initial UI
+        resultImg.style.display = 'none';
+        placeholder.style.display = 'flex';
+        placeholder.innerHTML = `
+          <i class="fas fa-image"></i>
+          <p>your image will appear here</p>
+        `;
+        setDownloadEnabled(false);
+        setStatus('ready', false);
+      }
+    }
+
+    // also if user clicks outside overlay? we keep it strict.
+    // ensure that overlay starts hidden
+    offlineOverlay.classList.remove('active');
+
+    // run
+    initialConnectionCheck();
+
+    // expose generate to global
+    window.generateTunix = generateTunix;
+
+    // override fetch to catch offline errors? but we already handle in generate.
+
   })();
 </script>
 </body>
